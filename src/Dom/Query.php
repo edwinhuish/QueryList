@@ -14,6 +14,7 @@ use Closure;
 
 class Query
 {
+
     protected $html;
     /**
      * @var \phpQueryObject
@@ -43,29 +44,32 @@ class Query
 
     /**
      * @param $html
-     * @param null $charset
+     * @param  null  $charset
+     *
      * @return QueryList
      */
     public function setHtml($html, $charset = null)
     {
-        $this->html = value($html);
-        $this->document = phpQuery::newDocumentHTML($this->html,$charset);
+        $this->html     = value($html);
+        $this->document = phpQuery::newDocumentHTML($this->html, $charset);
+
         return $this->ql;
     }
 
     /**
      * Get crawl results
      *
-     * @param Closure|null $callback
+     * @param  Closure|null  $callback
+     *
      * @return Collection|static
      */
     public function getData(Closure $callback = null)
     {
-        return  is_null($callback) ? $this->data : $this->data->map($callback);
+        return is_null($callback) ? $this->data : $this->data->map($callback);
     }
 
     /**
-     * @param Collection $data
+     * @param  Collection  $data
      */
     public function setData(Collection $data)
     {
@@ -77,6 +81,7 @@ class Query
      * Searches for all elements that match the specified expression.
      *
      * @param $selector A string containing a selector expression to match elements against.
+     *
      * @return Elements
      */
     public function find($selector)
@@ -93,12 +98,14 @@ class Query
      *    // ...
      *  ]
      *
-     * @param array $rules
+     * @param  array  $rules
+     *
      * @return QueryList
      */
     public function rules(array $rules)
     {
         $this->rules = $rules;
+
         return $this->ql;
     }
 
@@ -107,11 +114,13 @@ class Query
      * Set the slice area for crawl list
      *
      * @param $selector
+     *
      * @return QueryList
      */
     public function range($selector)
     {
         $this->range = $selector;
+
         return $this->ql;
     }
 
@@ -122,21 +131,24 @@ class Query
      */
     public function removeHead()
     {
-        $html = preg_replace('/<head.+?>.+<\/head>/is','<head></head>',$this->html);
+        $html = preg_replace('/<head.+?>.+<\/head>/is', '<head></head>', $this->html);
         $this->setHtml($html);
+
         return $this->ql;
     }
 
     /**
      * Execute the query rule
      *
-     * @param Closure|null $callback
+     * @param  Closure|null  $callback
+     *
      * @return QueryList
      */
     public function query(Closure $callback = null)
     {
         $this->data = $this->getList();
         $callback && $this->data = $this->data->map($callback);
+
         return $this->ql;
     }
 
@@ -145,50 +157,31 @@ class Query
         $data = [];
 
         if ( ! empty($this->range)) {
-
-            $elements = $this->find($this->range);
-
-            $i = 0;
-
-            $elements->map((function (Elements $element) use (&$data, &$i) {
-
-                foreach ($this->rules as $key => $reg_value) {
-
-                    [$selector, $attr, $elementCallback, $htmlCallback, $tags] = $this->getRulesParams($reg_value);
-
-                    $this->extractElements($element->find($selector), $elementCallback)
-                         ->map((function (Elements $element) use ($attr, $tags, $htmlCallback, $key, &$i, &$data) {
-
-                             $data[$i][$key] = $this->extractString($element, $attr, $tags, $htmlCallback, $key);
-
-                         })->bindTo($this));
-                }
-
-                $i++;
-
-            })->bindTo($this));
-
+            $root = $this->find($this->range);
         } else {
-            foreach ($this->rules as $key => $reg_value) {
+            $root = new Elements($this->document);
+        }
 
-                $i = 0;
+        $i = 0;
+
+        $root->map((function (Elements $element) use (&$data, &$i) {
+
+            foreach ($this->rules as $key => $reg_value) {
 
                 [$selector, $attr, $elementCallback, $htmlCallback, $tags] = $this->getRulesParams($reg_value);
 
-                $this->extractElements($this->find($selector), $elementCallback)
+                $this->extractElements($element->find($selector), $elementCallback)
                      ->map((function (Elements $element) use ($attr, $tags, $htmlCallback, $key, &$i, &$data) {
 
-                         $data[$i][$key] = $this->extractString($element, $attr, $tags, $htmlCallback, $key);
-
-                         $i++;
+                         $data[$i][$key][] = $this->extractString($element, $attr, $tags, $htmlCallback, $key);
 
                      })->bindTo($this));
-
-
             }
-        }
 
-        //        phpQuery::$documents = array();
+            $i++;
+
+        })->bindTo($this));
+
         return collect($data);
     }
 
@@ -263,15 +256,15 @@ class Query
     /**
      * 去除特定的html标签
      *
-     * @param  string[] $htmls
-     * @param  string $tags_str 多个标签名之间用空格隔开
+     * @param  string[]  $htmls
+     * @param  string  $tags_str  多个标签名之间用空格隔开
      *
      * @return string[]
      */
-    protected function stripTags($htmls,$tags_str)
+    protected function stripTags($htmls, $tags_str)
     {
 
-        return array_map(function(string $html) use ($tags_str){
+        return array_map(function (string $html) use ($tags_str) {
 
             $tagsArr = $this->tag($tags_str);
             $html    = $this->removeTags($html, $tagsArr[1]);
@@ -289,24 +282,24 @@ class Query
     /**
      * 保留特定的html标签
      *
-     * @param  string[] $htmls
-     * @param  string $tags_str 多个标签名之间用空格隔开
+     * @param  string[]  $htmls
+     * @param  string  $tags_str  多个标签名之间用空格隔开
      *
      * @return string[]
      */
-    protected function allowTags($htmls,$tags_str)
+    protected function allowTags($htmls, $tags_str)
     {
         $tagsArr = $this->tag($tags_str);
-        $allow = '';
+        $allow   = '';
         foreach ($tagsArr[0] as $tag) {
             $allow .= "<$tag> ";
         }
 
-        return array_map(function(string $html) use ($tagsArr,$allow){
+        return array_map(function (string $html) use ($tagsArr, $allow) {
 
-            $html = $this->removeTags($html,$tagsArr[1]);
+            $html = $this->removeTags($html, $tagsArr[1]);
 
-            return strip_tags(trim($html),$allow);
+            return strip_tags(trim($html), $allow);
 
         }, $htmls);
 
@@ -314,46 +307,47 @@ class Query
 
     protected function tag($tags_str)
     {
-        $tagArr = preg_split("/\s+/",$tags_str,-1,PREG_SPLIT_NO_EMPTY);
-        $tags = array(array(),array());
-        foreach($tagArr as $tag)
-        {
-            if(preg_match('/-(.+)/', $tag,$arr))
-            {
+        $tagArr = preg_split("/\s+/", $tags_str, -1, PREG_SPLIT_NO_EMPTY);
+        $tags   = [[], []];
+        foreach ($tagArr as $tag) {
+            if (preg_match('/-(.+)/', $tag, $arr)) {
                 array_push($tags[1], $arr[1]);
-            }else{
+            } else {
                 array_push($tags[0], $tag);
             }
         }
+
         return $tags;
     }
 
     /**
      * 移除特定的html标签
-     * @param  string $html
-     * @param  array  $tags 标签数组
+     *
+     * @param  string  $html
+     * @param  array  $tags  标签数组
+     *
      * @return string
      */
-    protected function removeTags($html,$tags)
+    protected function removeTags($html, $tags)
     {
         $tag_str = '';
-        if(count($tags))
-        {
+        if (count($tags)) {
             foreach ($tags as $tag) {
-                $tag_str .= $tag_str?','.$tag:$tag;
+                $tag_str .= $tag_str ? ','.$tag : $tag;
             }
-//            phpQuery::$defaultCharset = $this->inputEncoding?$this->inputEncoding:$this->htmlEncoding;
+            //            phpQuery::$defaultCharset = $this->inputEncoding?$this->inputEncoding:$this->htmlEncoding;
             $doc = phpQuery::newDocumentHTML($html);
             pq($doc)->find($tag_str)->remove();
             $html = pq($doc)->htmlOuter();
             $doc->unloadDocument();
         }
+
         return $html;
     }
 
     protected function destroyDocument()
     {
-        if( ! $this->document){
+        if ( ! $this->document) {
             return;
         }
 
