@@ -235,7 +235,7 @@ class Query
      * @param  \Closure|null  $handle
      * @param  string  $key
      *
-     * @return string
+     * @return string|mixed
      */
     protected function extractString(Elements $element, string $attr, string $tags = '', Closure $handle = null, $key = '')
     {
@@ -256,11 +256,7 @@ class Query
                 break;
         }
 
-        if($handle){
-            $htmls = call_user_func($handle, $htmls, $key);
-        }
-
-        return is_array($htmls) ? implode(' ', $htmls) : $htmls;
+        return $handle ? call_user_func($handle, $htmls, $key) : implode(' ', $htmls);
 
     }
 
