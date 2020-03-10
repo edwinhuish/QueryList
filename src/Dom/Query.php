@@ -353,6 +353,10 @@ class Query
 
     protected function destroyDocument()
     {
+        if( ! $this->document){
+            return;
+        }
+
         $this->document->unloadDocument();
         unset($this->document);
     }
