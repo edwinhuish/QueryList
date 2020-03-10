@@ -228,61 +228,92 @@ class Query
         });
     }
 
+    /**
+     * @param  \QL\Dom\Elements  $element
+     * @param  string  $attr
+     * @param  string  $tags
+     * @param  \Closure|null  $handle
+     * @param  string  $key
+     *
+     * @return string
+     */
     protected function extractString(Elements $element, string $attr, string $tags = '', Closure $handle = null, $key = '')
     {
 
         switch ($attr) {
             case 'text':
-                $html = $this->allowTags($element->html(), $tags);
+                $htmls = $this->allowTags($element->htmls()->toArray(), $tags);
                 break;
             case 'html':
-                $html = $this->stripTags($element->html(), $tags);
+            case 'innerHTML':
+                $htmls = $this->stripTags($element->htmls()->toArray(), $tags);
                 break;
             case 'outerHTML':
-                $html = $this->stripTags($element->htmlOuter(), $tags);
+                $htmls = $this->stripTags([$element->htmlOuter()], $tags);
                 break;
             default:
-                $html = $element->attr($attr);
+                $htmls = $element->attrs($attr)->toArray();
                 break;
         }
 
-        return $handle ? call_user_func($handle, $html, $key) : $html;
+        if($handle){
+            $htmls = call_user_func($handle, $htmls, $key);
+        }
+
+        return is_array($htmls) ? implode(' ', $htmls) : $htmls;
 
     }
 
     /**
      * 去除特定的html标签
-     * @param  string $html
+     *
+     * @param  string[] $htmls
      * @param  string $tags_str 多个标签名之间用空格隔开
-     * @return string
+     *
+     * @return string[]
      */
-    protected function stripTags($html,$tags_str)
+    protected function stripTags($htmls,$tags_str)
     {
-        $tagsArr = $this->tag($tags_str);
-        $html = $this->removeTags($html,$tagsArr[1]);
-        $p = array();
-        foreach ($tagsArr[0] as $tag) {
-            $p[]="/(<(?:\/".$tag."|".$tag.")[^>]*>)/i";
-        }
-        $html = preg_replace($p,"",trim($html));
-        return $html;
+
+        return array_map(function(string $html) use ($tags_str){
+
+            $tagsArr = $this->tag($tags_str);
+            $html    = $this->removeTags($html, $tagsArr[1]);
+            $p       = [];
+            foreach ($tagsArr[0] as $tag) {
+                $p[] = "/(<(?:\/".$tag."|".$tag.")[^>]*>)/i";
+            }
+            $html = preg_replace($p, "", trim($html));
+
+            return $html;
+
+        }, $htmls);
     }
 
     /**
      * 保留特定的html标签
-     * @param  string $html
+     *
+     * @param  string[] $htmls
      * @param  string $tags_str 多个标签名之间用空格隔开
-     * @return string
+     *
+     * @return string[]
      */
-    protected function allowTags($html,$tags_str)
+    protected function allowTags($htmls,$tags_str)
     {
         $tagsArr = $this->tag($tags_str);
-        $html = $this->removeTags($html,$tagsArr[1]);
         $allow = '';
         foreach ($tagsArr[0] as $tag) {
             $allow .= "<$tag> ";
         }
-        return strip_tags(trim($html),$allow);
+
+        return array_map(function(string $html) use ($tagsArr,$allow){
+
+            $html = $this->removeTags($html,$tagsArr[1]);
+
+            return strip_tags(trim($html),$allow);
+
+        }, $htmls);
+
     }
 
     protected function tag($tags_str)
