@@ -7,6 +7,7 @@
 
 namespace QL\Dom;
 
+use Tightenco\Collect\Contracts\Support\Arrayable;
 use Tightenco\Collect\Support\Collection;
 use phpQuery;
 use QL\QueryList;
@@ -170,12 +171,27 @@ class Query
 
                 [$selector, $attr, $elementCallback, $htmlCallback, $tags] = $this->getRulesParams($reg_value);
 
-                $this->extractElements($element->find($selector), $elementCallback)
-                     ->map((function (Elements $element) use ($attr, $tags, $htmlCallback, $key, &$i, &$data) {
+                $htmls = $this->extractElements($element->find($selector), $elementCallback)
+                              ->map((function (Elements $element) use ($attr, $tags) {
 
-                         $data[$i][$key][] = $this->extractString($element, $attr, $tags, $htmlCallback, $key);
+                                  return $this->extractString($element, $attr, $tags);
 
-                     })->bindTo($this));
+                              })->bindTo($this));
+
+                if ($htmlCallback) {
+                    $htmls = call_user_func($htmlCallback, $htmls, $key);
+                }
+
+                switch (true) {
+                    case $htmls instanceof Arrayable:
+                        $data[$i][$key] = $htmls->join(' ');
+                        break;
+                    case is_array($htmls):
+                        $data[$i][$key] = implode(' ', $htmls);
+                        break;
+                    default:
+                        $data[$i][$key] = $htmls;
+                }
             }
 
             $i++;
@@ -225,69 +241,61 @@ class Query
      * @param  \QL\Dom\Elements  $element
      * @param  string  $attr
      * @param  string  $tags
-     * @param  \Closure|null  $handle
-     * @param  string  $key
      *
      * @return string|mixed
      */
-    protected function extractString(Elements $element, string $attr, string $tags = '', Closure $handle = null, $key = '')
+    protected function extractString(Elements $element, string $attr, string $tags = '')
     {
 
         switch ($attr) {
             case 'text':
-                $htmls = $this->allowTags($element->htmls()->toArray(), $tags);
+                return $this->allowTags($element->html(), $tags);
                 break;
             case 'html':
             case 'innerHTML':
-                $htmls = $this->stripTags($element->htmls()->toArray(), $tags);
+                return $this->stripTags($element->html(), $tags);
                 break;
             case 'outerHTML':
-                $htmls = $this->stripTags([$element->htmlOuter()], $tags);
+                return $this->stripTags($element->htmlOuter(), $tags);
                 break;
             default:
-                $htmls = $element->attrs($attr)->toArray();
+                return $element->attr($attr);
                 break;
         }
-
-        return $handle ? call_user_func($handle, $htmls, $key) : implode(' ', $htmls);
 
     }
 
     /**
      * 去除特定的html标签
      *
-     * @param  string[]  $htmls
+     * @param  string  $html
      * @param  string  $tags_str  多个标签名之间用空格隔开
      *
-     * @return string[]
+     * @return string
      */
-    protected function stripTags($htmls, $tags_str)
+    protected function stripTags($html, $tags_str)
     {
 
-        return array_map(function (string $html) use ($tags_str) {
+        $tagsArr = $this->tag($tags_str);
+        $html    = $this->removeTags($html, $tagsArr[1]);
+        $p       = [];
+        foreach ($tagsArr[0] as $tag) {
+            $p[] = "/(<(?:\/".$tag."|".$tag.")[^>]*>)/i";
+        }
+        $html = preg_replace($p, "", trim($html));
 
-            $tagsArr = $this->tag($tags_str);
-            $html    = $this->removeTags($html, $tagsArr[1]);
-            $p       = [];
-            foreach ($tagsArr[0] as $tag) {
-                $p[] = "/(<(?:\/".$tag."|".$tag.")[^>]*>)/i";
-            }
-            $html = preg_replace($p, "", trim($html));
-
-            return $html;
-
-        }, $htmls);
+        return $html;
     }
 
     /**
      * 保留特定的html标签
      *
-     * @param  string[]  $htmls
+     * @param  string  $html
      * @param  string  $tags_str  多个标签名之间用空格隔开
      *
-     * @return string[]
+     * @return string
      */
-    protected function allowTags($htmls, $tags_str)
+    protected function allowTags($html, $tags_str)
     {
         $tagsArr = $this->tag($tags_str);
         $allow   = '';
@@ -295,13 +303,9 @@ class Query
             $allow .= "<$tag> ";
         }
 
-        return array_map(function (string $html) use ($tagsArr, $allow) {
+        $html = $this->removeTags($html, $tagsArr[1]);
 
-            $html = $this->removeTags($html, $tagsArr[1]);
-
-            return strip_tags(trim($html), $allow);
-
-        }, $htmls);
+        return strip_tags(trim($html), $allow);
 
     }
 
