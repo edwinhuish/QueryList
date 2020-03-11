@@ -179,18 +179,9 @@ class Query
                               })->bindTo($this));
 
                 if ($htmlCallback) {
-                    $htmls = call_user_func($htmlCallback, $htmls, $key);
-                }
-
-                switch (true) {
-                    case $htmls instanceof Arrayable:
-                        $data[$i][$key] = $htmls->join(' ');
-                        break;
-                    case is_array($htmls):
-                        $data[$i][$key] = implode(' ', $htmls);
-                        break;
-                    default:
-                        $data[$i][$key] = $htmls;
+                    $data[$i][$key] = call_user_func($htmlCallback, $htmls, $key);
+                } else {
+                    $data[$i][$key] = $htmls->join(' ');
                 }
             }
 
