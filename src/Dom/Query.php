@@ -245,12 +245,10 @@ class Query
      * @param  \QL\Dom\Elements  $element
      * @param  string  $attr
      * @param  string  $tags
-     * @param  \Closure|null  $handle
-     * @param  string  $key
      *
      * @return string
      */
-    protected function extractString(Elements $element, string $attr, string $tags = '', Closure $handle = null, $key = '')
+    protected function extractString(Elements $element, string $attr, string $tags = '')
     {
 
         switch ($attr) {
