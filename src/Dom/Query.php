@@ -171,12 +171,16 @@ class Query
 
                 [$selector, $attr, $elementCallback, $htmlCallback, $tags] = $this->getRulesParams($reg_value);
 
-                $htmls = $this->extractElements($element->find($selector), $elementCallback)
-                              ->map((function (Elements $element) use ($attr, $tags) {
+                $htmls = $element->find($selector)
+                    ->map((function (Elements $element) use ($elementCallback, $attr, $tags) {
 
-                                  return $this->extractString($element, $attr, $tags);
+                        if($elementCallback){
+                            $element = call_user_func($elementCallback, $element);
+                        }
 
-                              })->bindTo($this));
+                        return $this->extractString($element, $attr, $tags);
+
+                    })->bindTo($this));
 
                 if ($htmlCallback) {
                     // 如果有用户定义的 htmlCallback，则交由 htmlCallback 处理。注意参数 $htmls 为 Collection
@@ -216,27 +220,6 @@ class Query
         $htmlCallback = $reg_value[3] ?? null;
 
         return [$selector, $attr, $elementCallback, $htmlCallback, $tags];
-    }
-
-    /**
-     * 处理查找到的 Elements
-     *
-     * @param  \QL\Dom\Elements  $elements
-     * @param  \Closure|null  $handle
-     *
-     * @return \QL\Dom\Elements
-     */
-    protected function extractElements(Elements $elements, Closure $handle = null)
-    {
-        return $elements->each(function ($dom) use ($handle) {
-
-            if ($handle) {
-                /* @var \QL\Dom\Elements $element */
-                $element = call_user_func($handle, new Elements(pq($dom)));
-                $dom     = $element->getDOMDocument();
-            }
-
-        });
     }
 
     /**
