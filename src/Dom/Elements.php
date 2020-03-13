@@ -165,20 +165,22 @@ class Elements
     }
 
     /**
-     * @param array|string $callback Expects $node as first param, $index as second
-     * @param array $param1 External variables passed to callback. Use compact('varName1', 'varName2'...) and extract($scope)
-     * @param array $param2 Will ba passed as third and futher args to callback.
-     * @param array $param3 Will ba passed as fourth and futher args to callback, and so on...
+     * Iterating elements
+     *
+     * @param  callable  $callback
      *
      * @return $this
      */
-    public function each($callback, $param1 = null, $param2 = null, $param3 = null)
+    public function each(callable $callback)
     {
         $this->elements->each(function ($dom) use ($callback) {
-            /* @var Elements $element */
-            $element = $callback(new self(pq($dom)));
-            $dom     = $element->getDOMDocument();
-        }, $param1, $param2, $param3);
+            if( ! $dom){
+                return;
+            }
+            $dom = new Elements(pq($dom));
+            call_user_func($callback, $dom);
+            $dom = $dom->getDOMDocument();
+        });
 
         return $this;
     }
