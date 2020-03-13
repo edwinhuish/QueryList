@@ -173,13 +173,20 @@ class Elements
      */
     public function each(callable $callback)
     {
-        $this->elements->each(function ($dom) use ($callback) {
-            if( ! $dom){
+        $break = false;
+        $this->elements->each(function ($dom) use ($callback, &$break) {
+            if ( ! $dom || $break) {
                 return;
             }
-            $dom = new Elements(pq($dom));
-            call_user_func($callback, $dom);
-            $dom = $dom->getDOMDocument();
+            $orig = $dom;
+            $dom  = new Elements(pq($dom));
+            if (false === call_user_func($callback, $dom)) {
+                $dom = $orig;
+                $break = true;
+            } else {
+                $dom = $dom->getDOMDocument();
+            }
+            unset($orig);
         });
 
         return $this;
@@ -203,7 +210,7 @@ class Elements
     /**
      * Gets the attributes of all the elements
      *
-     * @param $attr HTML attribute name
+     * @param string $attr HTML attribute name
      * @return \Illuminate\Support\Collection|\Tightenco\Collect\Support\Collection
      */
     public function attrs($attr)
