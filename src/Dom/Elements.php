@@ -113,7 +113,6 @@ use phpQueryObject;
  * @method Elements removeClass($className)
  * @method Elements toggleClass($className)
  * @method Elements _empty()
- * @method Elements each($callback,$param1=null,$param2=null,$param3=null)
  * @method Elements callback($callback,$param1=null,$param2=null,$param3=null)
  * @method string data($key,$value=null)
  * @method Elements removeData($key)
@@ -163,6 +162,25 @@ class Elements
             $obj = trim($obj);
         }
         return $obj;
+    }
+
+    /**
+     * @param array|string $callback Expects $node as first param, $index as second
+     * @param array $param1 External variables passed to callback. Use compact('varName1', 'varName2'...) and extract($scope)
+     * @param array $param2 Will ba passed as third and futher args to callback.
+     * @param array $param3 Will ba passed as fourth and futher args to callback, and so on...
+     *
+     * @return $this
+     */
+    public function each($callback, $param1 = null, $param2 = null, $param3 = null)
+    {
+        $this->elements->each(function ($dom) use ($callback) {
+            /* @var Elements $element */
+            $element = $callback(new self(pq($dom)));
+            $dom     = $element->getDOMDocument();
+        }, $param1, $param2, $param3);
+
+        return $this;
     }
 
     /**
