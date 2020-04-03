@@ -292,8 +292,8 @@ class Query
 
         $charset = $matches[1] ?: 'auto';
 
-        $cs = strtolower($charset);
-        if ('utf-8' === $cs || 'utf8' === $cs) {
+        $charset = strtoupper($charset);
+        if ('UTF-8' === $charset || 'UTF8' === $charset) {
             return $html;
         }
 
