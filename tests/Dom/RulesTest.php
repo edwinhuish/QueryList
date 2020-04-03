@@ -6,10 +6,11 @@
  * Time: 下午12:25
  */
 
-namespace QLTests\Dom;
+namespace Tests\Dom;
+
 
 use QL\QueryList;
-use QLTests\TestCaseBase;
+use Tests\TestCaseBase;
 use Tightenco\Collect\Support\Collection;
 
 class RulesTest extends TestCaseBase
@@ -20,7 +21,7 @@ class RulesTest extends TestCaseBase
     public function setUp()
     {
         $this->html = $this->getSnippet('snippet-2');
-        $this->ql   = new QueryList($this->html);
+        $this->ql   = QueryList::html($this->html);
     }
 
     /**
@@ -28,17 +29,14 @@ class RulesTest extends TestCaseBase
      */
     public function get_data_by_rules()
     {
-        $range = 'ul > li';
-
         $rules = [
-            ['a', 'text', 'a'],
+            ['a', 'text', 'a_text'],
             ['img', 'src', 'img_src'],
-            ['img', 'alt', 'img_alt']
+            ['img', 'alt', 'img_alt'],
         ];
-
-
-        $data = $this->ql->range($range)->extract($rules);
-
+        $range = 'ul>li';
+        $ql    = new QueryList();
+        $data  = $ql->range($range)->setHtml($this->html)->extract($rules);
         $this->assertInstanceOf(Collection::class, $data);
         $this->assertCount(3, $data);
         $this->assertEquals('http://querylist.com/2.jpg', $data[1]['img_src'][0]);
@@ -48,49 +46,36 @@ class RulesTest extends TestCaseBase
     /**
      * @test
      */
-    public function get_data_by_rules_without_range()
+    public function get_data_by_eloquent_obj()
     {
-        $rules = [
-            ['a', 'text', 'a_txt'],
-            ['img', 'src', 'img_src'],
-            ['img', 'alt', 'img_alt'],
-        ];
+        $obj1 = new \stdClass();
+        $obj1->name='a_text';
+        $obj1->selector = 'a';
+        $obj1->attr = 'text';
 
-        $data = $this->ql->extract($rules);
+        $obj2 = new class
+        {
+            public $name = 'img_src';
+            public $selector = 'img';
+            public $attr = 'src';
+        };
 
-        $this->assertInstanceOf(Collection::class, $data);
-        $this->assertCount(1, $data);
-        $this->assertEquals('http://querylist.com/2.jpg', $data[0]['img_src'][1]);
-    }
+        $obj3 = new class
+        {
+            protected $name = 'img_alt';
+            protected $selector = 'img';
+            protected $attr = 'alt';
 
+            public function __get($name)
+            {
+                return $this->$name;
+            }
+        };
 
-    /**
-     * @test
-     */
-    public function get_data_by_array_rules()
-    {
+        $eloquent = [$obj1, $obj2, $obj3];
         $range = 'ul>li';
-
-        $rules = [
-            [
-                'test_selector' => 'a',
-                'test_attr'     => 'text',
-                'test_name'     => 'a'
-            ],
-            [
-                'test_selector' => 'img',
-                'test_attr'     => 'src',
-                'test_name'     => 'img_src'
-            ],
-            [
-                'test_selector' => 'img',
-                'test_attr'     => 'alt',
-                'test_name'     => 'img_alt'
-            ],
-        ];
-
-        $data = $this->ql->range($range)->extract($rules, 'test_selector', 'test_attr', 'test_name');
-
+        $ql    = new QueryList();
+        $data  = $ql->range($range)->setHtml($this->html)->extract($eloquent, 'selector', 'attr', 'name');
         $this->assertInstanceOf(Collection::class, $data);
         $this->assertCount(3, $data);
         $this->assertEquals('http://querylist.com/2.jpg', $data[1]['img_src'][0]);

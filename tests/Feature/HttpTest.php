@@ -67,8 +67,7 @@ class HttpTest extends TestCaseBase
         $errorUrl = 'http://web-site-not-exist.com';
         $urls = array_merge($this->urls,[$errorUrl]);
 
-        QueryList::rules([])
-            ->multiGet($urls)
+        QueryList::multiGet($urls)
             ->concurrency(2)
             ->withOptions([
                 'timeout' => 60

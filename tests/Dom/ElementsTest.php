@@ -10,7 +10,7 @@ namespace QLTests\Dom;
 
 
 use QL\Dom\Elements;
-use QLTests\TestCaseBase;
+use Tests\TestCaseBase;
 use Tightenco\Collect\Support\Collection;
 
 class ElementsTest extends TestCaseBase

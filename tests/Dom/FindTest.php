@@ -10,7 +10,7 @@ namespace QLTests\Dom;
 
 
 use QL\QueryList;
-use QLTests\TestCaseBase;
+use Tests\TestCaseBase;
 
 class FindTest extends TestCaseBase
 {
