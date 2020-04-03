@@ -48,10 +48,15 @@ class Query
     }
 
     /**
-     * @return mixed
+     * @param  bool  $getOriginal
+     * @return string
      */
-    public function getHtml()
+    public function getHtml(bool $getOriginal = false): string
     {
+        if ( ! $getOriginal && $this->document) {
+            return $this->document->getOuterHtml();
+        }
+
         return $this->html;
     }
 
@@ -65,7 +70,7 @@ class Query
 
         $newHtml = $this->changeHtmlCharsetToUTF8($html);
 
-        $this->handleHtml($newHtml);
+        $newHtml = $this->handleHtml($newHtml);
 
         $this->document = new Document($newHtml);
 
