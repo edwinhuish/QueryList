@@ -290,7 +290,7 @@ class Query
     {
         preg_match('/<meta[^>]+charset=[\'"]?([^"^\'^;^\s]*)[\'"]?[^>]*>/', $html, $matches);
 
-        $charset = $matches[1] || 'auto';
+        $charset = $matches[1] ?: 'auto';
 
         $newHtml = mb_convert_encoding($html, "UTF-8", $charset);
 
