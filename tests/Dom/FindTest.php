@@ -20,8 +20,7 @@ class FindTest extends TestCaseBase
     public function setUp()
     {
         $this->html = $this->getSnippet('snippet-1');
-        $this->ql   = new QueryList();
-        $this->ql->loadContent($this->html);
+        $this->ql   = QueryList::html($this->html);
     }
 
     /**
