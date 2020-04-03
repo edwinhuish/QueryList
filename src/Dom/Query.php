@@ -7,26 +7,40 @@
 
 namespace QL\Dom;
 
-use Tightenco\Collect\Support\Collection;
-use phpQuery;
+use Exception;
+use QL\Contracts\DocumentHandlerContract;
+use QL\Contracts\ElementHandlerContract;
+use QL\Contracts\HtmlHandlerContract;
+use QL\Contracts\ResultHandlerContract;
 use QL\QueryList;
-use Closure;
+use Tightenco\Collect\Support\Collection;
 
 class Query
 {
-    protected $html;
     /**
-     * @var \phpQueryObject
+     * @var string
+     */
+    protected $html;
+
+    /**
+     * @var Document
      */
     protected $document;
-    protected $rules;
-    protected $range = null;
-    protected $ql;
-    /**
-     * @var Collection
-     */
-    protected $data;
 
+    /**
+     * @var string|null
+     */
+    protected $range = null;
+
+    /**
+     * @var array
+     */
+    protected $handlers;
+
+    /**
+     * @var QueryList
+     */
+    protected $ql;
 
     public function __construct(QueryList $ql)
     {
@@ -42,244 +56,245 @@ class Query
     }
 
     /**
-     * @param $html
-     * @param null $charset
+     * @param  string  $html
      * @return QueryList
      */
-    public function setHtml($html, $charset = null)
+    public function setHtml(string $html)
     {
-        $this->html = value($html);
-        $this->document = phpQuery::newDocumentHTML($this->html,$charset);
+        $this->html = $html;
+
+        $newHtml = $this->changeHtmlCharsetToUTF8($html);
+
+        $this->handleHtml($newHtml);
+
+        $this->document = new Document($newHtml);
+
+        $this->handleDocument();
+
         return $this->ql;
     }
-
-    /**
-     * Get crawl results
-     *
-     * @param Closure|null $callback
-     * @return Collection|static
-     */
-    public function getData(Closure $callback = null)
-    {
-        return  is_null($callback) ? $this->data : $this->data->map($callback);
-    }
-
-    /**
-     * @param Collection $data
-     */
-    public function setData(Collection $data)
-    {
-        $this->data = $data;
-    }
-
 
     /**
      * Searches for all elements that match the specified expression.
      *
-     * @param $selector A string containing a selector expression to match elements against.
+     * @param  string  $selector  A string containing a selector expression to match elements against.
      * @return Elements
      */
     public function find($selector)
     {
-        return (new Dom($this->document))->find($selector);
+        return $this->getDocument()->find($selector);
     }
 
     /**
-     * Set crawl rule
-     *
-     * $rules = [
-     *    'rule_name1' => ['selector','HTML attribute | text | html','Tag filter list','callback'],
-     *    'rule_name2' => ['selector','HTML attribute | text | html','Tag filter list','callback'],
-     *    // ...
-     *  ]
-     *
-     * @param array $rules
-     * @return QueryList
+     * @param  iterable  $rules
+     * @param  string|int|null  $rule_selector_key
+     * @param  string|int|null  $rule_attr_key
+     * @param  string|int|null  $rule_name_key
+     * @return Collection
      */
-    public function rules(array $rules)
+    public function extract(iterable $rules, $rule_selector_key = null, $rule_attr_key = null, $rule_name_key = null)
     {
-        $this->rules = $rules;
-        return $this->ql;
+        $root = $this->getDocument();
+
+        if ( ! empty($this->range)) {
+            $root = $root->find($this->range);
+        }
+
+        $data = [];
+        $i    = 0;
+
+        $root->map((function (Elements $element) use (&$data, &$i, $rules, $rule_selector_key, $rule_attr_key, $rule_name_key) {
+
+            foreach ($rules as $idx => $rule) {
+
+                [$selector, $attr, $name] = $this->getRuleAttributes($rule, $idx, $rule_selector_key, $rule_attr_key, $rule_name_key);
+
+                $results = $element->find($selector)->map((function (Elements $element) use ($rule, $attr) {
+
+                    return $this->handleElement($element, $rule)->{$attr};
+
+                })->bindTo($this))->toArray();
+
+                $data[$i][$name] = $this->handleResult($results, $rule);
+
+            }
+
+            $i++;
+        })->bindTo($this));
+
+        if (empty($this->range)) {
+            $data = array_shift($data);
+        }
+
+        $this->range = null; // clear range after extract
+
+        return new Collection($data);
     }
 
+    /**
+     * @param  object|array  $rule
+     * @param  string|int  $idx
+     * @param  string|int|null  $rule_selector_key
+     * @param  string|int|null  $rule_attr_key
+     * @param  string|int|null  $rule_name_key
+     * @return array
+     * @throws Exception
+     */
+    protected function getRuleAttributes($rule, $idx, $rule_selector_key = null, $rule_attr_key = null, $rule_name_key = null)
+    {
+        if (is_object($rule)) {
+            $selector = $rule->{$rule_selector_key};
+
+            $attr = $rule->{$rule_attr_key};
+
+            $name = $rule->{$rule_name_key};
+
+        } else {
+
+            $selector = $rule_selector_key ? ($rule[$rule_selector_key] ?? null) : array_shift($rule);
+
+            $attr = $rule_attr_key ? ($rule[$rule_attr_key] ?? null) : array_shift($rule);
+
+            $name = $rule_name_key ? ($rule[$rule_name_key] ?? null) : array_shift($rule);
+        }
+
+        if ( ! $selector) {
+            throw new Exception('Selector is missing in rules index: '.$idx);
+        }
+
+        if ( ! $attr) {
+            throw new Exception('Attr is missing in rules index: '.$idx);
+        }
+
+        $name = $name ?? $idx;
+
+        return [$selector, $attr, $name];
+    }
 
     /**
      * Set the slice area for crawl list
      *
-     * @param $selector
+     * @param  string  $selector
      * @return QueryList
      */
-    public function range($selector)
+    public function range(string $selector)
     {
         $this->range = $selector;
         return $this->ql;
     }
 
+
     /**
-     * Remove HTML head,try to solve the garbled
-     *
+     * @param $handler
+     * @param  mixed  ...$args
      * @return QueryList
      */
-    public function removeHead()
+    public function handle($handler, ...$args)
     {
-        $html = preg_replace('/<head.+?>.+<\/head>/is','<head></head>',$this->html);
-        $this->setHtml($html);
+        switch (true) {
+            case (is_subclass_of($handler, HtmlHandlerContract::class)):
+                $this->handlers['html'][$handler] = $args;
+                break;
+            case (is_subclass_of($handler, DocumentHandlerContract::class)):
+                $this->handlers['document'][$handler] = $args;
+                break;
+            case (is_subclass_of($handler, ElementHandlerContract::class)):
+                $this->handlers['element'][$handler] = $args;
+                break;
+            case (is_subclass_of($handler, ResultHandlerContract::class)):
+                $this->handlers['result'][$handler] = $args;
+                break;
+        }
+
         return $this->ql;
     }
 
     /**
-     * Execute the query rule
-     *
-     * @param Closure|null $callback
-     * @return QueryList
+     * @param  string  $html
+     * @return $this
      */
-    public function query(Closure $callback = null)
+    protected function handleHtml(string $html): string
     {
-        $this->data = $this->getList();
-        $callback && $this->data = $this->data->map($callback);
+        foreach ($this->getHandlers('html') as $handler => $args) {
+
+            $html = call_user_func([$handler, 'handle'], $html, ...$args);
+        }
+
+        return $html;
+    }
+
+    protected function handleDocument()
+    {
+//        $document = $this->getDocument();
+
+        foreach ($this->getHandlers('document') as $handler => $args) {
+
+            call_user_func([$handler, 'handle'], $this->getDocument(), ...$args);
+//            $document = call_user_func([$handler, 'handle'], $document, ...$args);
+        }
+
+//        $this->document = $document;
+
         return $this->ql;
     }
 
-    protected function getList()
+    /**
+     * @param  Elements  $element
+     * @param  array|object  $rule
+     * @return Elements
+     */
+    protected function handleElement(Elements $element, $rule): Elements
     {
-        $data = [];
-        if (!empty($this->range)) {
-            $robj = $this->document->find($this->range);
-            $i = 0;
-            foreach ($robj as $item) {
-                foreach ($this->rules as $key => $reg_value){
-                    $tags = $reg_value[2] ?? '';
-                    $iobj = pq($item,$this->document)->find($reg_value[0]);
-                    switch ($reg_value[1]) {
-                        case 'text':
-                            $data[$i][$key] = $this->allowTags(pq($iobj)->html(),$tags);
-                            break;
-                        case 'html':
-                            $data[$i][$key] = $this->stripTags(pq($iobj)->html(),$tags);
-                            break;
-                        default:
-                            $data[$i][$key] = pq($iobj)->attr($reg_value[1]);
-                            break;
-                    }
+        foreach ($this->getHandlers('element') as $handler => $args) {
 
-                    if(isset($reg_value[3])){
-                        $data[$i][$key] = call_user_func($reg_value[3],$data[$i][$key],$key);
-                    }
-                }
-                $i++;
-            }
-        } else {
-            foreach ($this->rules as $key => $reg_value){
-                $tags = $reg_value[2] ?? '';
-                $lobj = $this->document->find($reg_value[0]);
-                $i = 0;
-                foreach ($lobj as $item) {
-                    switch ($reg_value[1]) {
-                        case 'text':
-                            $data[$i][$key] = $this->allowTags(pq($item,$this->document)->html(),$tags);
-                            break;
-                        case 'html':
-                            $data[$i][$key] = $this->stripTags(pq($item,$this->document)->html(),$tags);
-                            break;
-                        default:
-                            $data[$i][$key] = pq($item,$this->document)->attr($reg_value[1]);
-                            break;
-                    }
-
-                    if(isset($reg_value[3])){
-                        $data[$i][$key] = call_user_func($reg_value[3],$data[$i][$key],$key);
-                    }
-
-                    $i++;
-                }
-            }
+            $element = call_user_func([$handler, 'handle'], $element, $rule, ...$args);
         }
-//        phpQuery::$documents = array();
-        return collect($data);
+
+        return $element;
     }
 
     /**
-     * 去除特定的html标签
-     * @param  string $html
-     * @param  string $tags_str 多个标签名之间用空格隔开
-     * @return string
+     * @param  array  $result
+     * @param  array|object  $rule
+     * @return array
      */
-    protected function stripTags($html,$tags_str)
+    protected function handleResult(array $result, $rule)
     {
-        $tagsArr = $this->tag($tags_str);
-        $html = $this->removeTags($html,$tagsArr[1]);
-        $p = array();
-        foreach ($tagsArr[0] as $tag) {
-            $p[]="/(<(?:\/".$tag."|".$tag.")[^>]*>)/i";
+        foreach ($this->getHandlers('result') as $handler => $args) {
+
+            $result = call_user_func([$handler, 'handle'], $result, $rule, ...$args);
         }
-        $html = preg_replace($p,"",trim($html));
-        return $html;
+
+        return $result;
     }
 
     /**
-     * 保留特定的html标签
-     * @param  string $html
-     * @param  string $tags_str 多个标签名之间用空格隔开
-     * @return string
+     * @param  string  $name
+     * @return array
      */
-    protected function allowTags($html,$tags_str)
+    protected function getHandlers(string $name): array
     {
-        $tagsArr = $this->tag($tags_str);
-        $html = $this->removeTags($html,$tagsArr[1]);
-        $allow = '';
-        foreach ($tagsArr[0] as $tag) {
-            $allow .= "<$tag> ";
+        return $this->handlers[$name] ?? [];
+    }
+
+    public function getDocument()
+    {
+        if ( ! $this->document) {
+            $this->document = new Document();
         }
-        return strip_tags(trim($html),$allow);
+
+        return $this->document;
     }
 
-    protected function tag($tags_str)
+    protected function changeHtmlCharsetToUTF8(string $html)
     {
-        $tagArr = preg_split("/\s+/",$tags_str,-1,PREG_SPLIT_NO_EMPTY);
-        $tags = array(array(),array());
-        foreach($tagArr as $tag)
-        {
-            if(preg_match('/-(.+)/', $tag,$arr))
-            {
-                array_push($tags[1], $arr[1]);
-            }else{
-                array_push($tags[0], $tag);
-            }
-        }
-        return $tags;
+        preg_match('/<meta[^>]+charset=([^"^\'^;^\s]*)[^>]*>/', $html, $matches);
+
+        $charset = $matches[1] ?? 'auto';
+
+        $newHtml = mb_convert_encoding($html, "UTF-8", $charset);
+
+        return $charset === 'auto' ? $newHtml : preg_replace('/(<meta[^>]+)charset='.$matches[1].'([^>]*>)/', '${1}charset=UTF-8${2}', $newHtml);
     }
 
-    /**
-     * 移除特定的html标签
-     * @param  string $html
-     * @param  array  $tags 标签数组
-     * @return string
-     */
-    protected function removeTags($html,$tags)
-    {
-        $tag_str = '';
-        if(count($tags))
-        {
-            foreach ($tags as $tag) {
-                $tag_str .= $tag_str?','.$tag:$tag;
-            }
-//            phpQuery::$defaultCharset = $this->inputEncoding?$this->inputEncoding:$this->htmlEncoding;
-            $doc = phpQuery::newDocumentHTML($html);
-            pq($doc)->find($tag_str)->remove();
-            $html = pq($doc)->htmlOuter();
-            $doc->unloadDocument();
-        }
-        return $html;
-    }
-
-    protected function destroyDocument()
-    {
-        $this->document->unloadDocument();
-        unset($this->document);
-    }
-
-    public function __destruct()
-    {
-        $this->destroyDocument();
-    }
 }
