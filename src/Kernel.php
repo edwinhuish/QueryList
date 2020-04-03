@@ -56,6 +56,11 @@ class Kernel
         $this->binds[$name] = $provider;
     }
 
+    /**
+     * @param  string  $name
+     * @return mixed
+     * @throws ServiceNotFoundException
+     */
     public function getService(string $name)
     {
         if(!$this->binds->offsetExists($name)){

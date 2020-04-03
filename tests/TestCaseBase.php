@@ -6,7 +6,7 @@
  * Time: 11:43 PM
  */
 
-namespace Tests;
+namespace QLTests;
 
 
 use PHPUnit\Framework\TestCase;
