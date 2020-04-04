@@ -1,5 +1,5 @@
-<p style="text-align: center">
-  <img src="logo.png" alt="QueryList" style="width:150px;">
+<p align="center">
+  <img width="150" src="logo.png" alt="QueryList">
   <br>
   <br>
 </p>
