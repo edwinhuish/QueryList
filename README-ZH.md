@@ -1,11 +1,11 @@
-<p align="center">
-  <img width="150" src="logo.png" alt="QueryList">
+<p style="text-align: center">
+  <img src="logo.png" alt="QueryList" style="width:150px;">
   <br>
   <br>
 </p>
 
 # QueryList  简介
-`QueryList`是一套简洁、优雅、可扩展的PHP采集工具(爬虫)，基于phpQuery。
+`QueryList`是一套简洁、优雅、可扩展的PHP采集工具(爬虫)，基于 [DomQuery](https://github.com/edwinhuish/domquery)。
 
 ## 特性
 - 拥有与jQuery完全相同的CSS3 DOM选择器
@@ -29,7 +29,7 @@
 - .....
 
 ## 环境要求
-- PHP >= 7.0
+- PHP >= 7.1
 
 > 如果你的PHP版本还停留在PHP5，或者不会使用Composer,你可以选择使用QueryList3,QueryList3支持php5.3以及手动安装。
 QueryList3 文档:http://v3.querylist.cc
@@ -37,7 +37,7 @@ QueryList3 文档:http://v3.querylist.cc
 ## 安装
 通过Composer安装:
 ```
-composer require jaeger/querylist
+composer require edwinhuish/querylist
 ```
 
 ## 使用
@@ -72,14 +72,15 @@ $ql->find('img')->map(function($img){
 ```php
 $ql->find('#head')->append('<div>追加内容</div>')->find('div')->htmls();
 $ql->find('.two')->children('img')->attrs('alt'); //获取class为two元素下的所有img孩子节点
+
 //遍历class为two元素下的所有孩子节点
-$data = $ql->find('.two')->children()->map(function ($item){
+//map函数返回的是 Collection 对象
+$data = $ql->find('.two')->children()->map(function (Elements $el){
     //用is判断节点类型
-    if($item->is('a')){
-        return $item->text();
-    }elseif($item->is('img'))
-    {
-        return $item->alt;
+    if($el->is('a')){
+        return $el->text();
+    }elseif($el->is('img')){
+        return $el->alt;
     }
 });
 
@@ -91,12 +92,11 @@ $ql->find('div.old')->replaceWith( $ql->find('div.new')->clone())->appendTo('.tr
 采集百度搜索结果列表的标题和链接:
 ```php
 $data = QueryList::get('http://www.baidu.com/s?wd=QueryList')
-	// 设置采集规则
-    ->rules([ 
+    ->handle(OneAttrPerElementHandler::class) // Extracted Attrs handler 必须在 extract 之前执行
+    ->extract([  // 设置采集规则
 	    'title'=>array('h3','text'),
 	    'link'=>array('h3>a','href')
-	])
-	->query()->getData();
+	]);
 
 print_r($data->all());
 ```
@@ -122,7 +122,55 @@ Array
         //...
 )
 ```
-#### 编码转换
+
+extract() 的更多用法：
+```php
+$html = <<<HTML
+<ul>
+    <li>
+        <a href="http://querylist.cc">QueryList官网</a>
+        <img src="http://querylist.com/1.jpg" alt="这是图片1" abc="这是一个自定义属性1">
+    </li>
+    <li>
+        <a href="http://v3.querylist.cc">QueryList V3文档</a>
+        <img src="http://querylist.com/2.jpg" alt="这是图片2" abc="这是一个自定义属性2">
+    </li>
+</ul>
+HTML;
+
+$eloquent = [
+    ['name' => 'link_href', 'selector' => 'a', 'attr' => 'href' /*...*/ ],
+    ['name' => 'img_src', 'selector' => 'img', 'attr' => 'src' /*...*/ ],
+    ['name' => 'link_text', 'selector' => 'a', 'attr' => 'text' /*...*/ ],
+]
+
+$data = QueryList::handle(OneAttrPerElementHandler::class)
+    ->setHtml($html)
+    ->extract($eloquent, 'selector', 'attr', 'name');
+
+print_r($data->all());
+```
+采集结果:
+```
+Array
+(
+    [0] => Array
+        (
+            [link_href] => http://querylist.cc
+            [img_src] => http://querylist.com/1.jpg
+            [link_text] => QueryList官网
+        )
+    [1] => Array
+        (
+            [link_href] => http://v3.querylist.cc
+            [img_src] => http://querylist.com/2.jpg
+            [link_text] => QueryList V3文档
+        )
+)
+```
+
+#### ~~编码转换~~
+( V5 自带默认 handler 会自动将编码转为 UTF-8， 如需禁用，请使用 QueryList::config()->disableDefault()，禁用默认的 handlers )
 ```php
 // 输出编码:UTF-8,输入编码:GB2312
 QueryList::get('https://top.etao.com')->encoding('UTF-8','GB2312')->find('a')->texts();
@@ -247,7 +295,7 @@ print_r($data->all());
 
 // 使用HTTP代理
 $ql->browser('https://m.toutiao.com',false,[
-	'--proxy' => '192.168.1.42:8080',
+    '--proxy' => '192.168.1.42:8080',
     '--proxy-type' => 'http'
 ])
 ```

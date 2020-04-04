@@ -1,11 +1,11 @@
-<p align="center">
-  <img width="150" src="logo.png" alt="QueryList">
+<p style="text-align: center">
+  <img src="logo.png" alt="QueryList" style="width:150px;">
   <br>
   <br>
 </p>
 
 # QueryList 
-`QueryList` is a simple, elegant, extensible PHP  Web Scraper (crawler/spider) ,based on phpQuery.
+`QueryList` is a simple, elegant, extensible PHP  Web Scraper (crawler/spider) ,based on [DomQuery](https://github.com/edwinhuish/domquery).
 
 [API Documentation](https://github.com/jae-jae/QueryList/wiki) 
 
@@ -31,12 +31,12 @@ Through plug-ins you can easily implement things like:
 - .....
 
 ## Requirements
-- PHP >= 7.0
+- PHP >= 7.1
 
 ## Installation
 By Composer installation:
 ```
-composer require jaeger/querylist
+composer require edwinhuish/querylist
 ```
 
 ## Usage
@@ -71,14 +71,15 @@ $ql->find('img')->map(function($img){
 ```php
 $ql->find('#head')->append('<div>Append content</div>')->find('div')->htmls();
 $ql->find('.two')->children('img')->attrs('alt'); // Get the class is the "two" element under all img child nodes
+
 // Loop class is the "two" element under all child nodes
-$data = $ql->find('.two')->children()->map(function ($item){
+// map method return Collection object
+$data = $ql->find('.two')->children()->map(function (Elements $el){
     // Use "is" to determine the node type
-    if($item->is('a')){
-        return $item->text();
-    }elseif($item->is('img'))
-    {
-        return $item->alt;
+    if($el->is('a')){
+        return $el->text();
+    }elseif($el->is('img')){
+        return $el->alt;
     }
 });
 
@@ -90,12 +91,11 @@ $ql->find('div.old')->replaceWith( $ql->find('div.new')->clone())->appendTo('.tr
 Crawl the title and link of the Google search results list:
 ```php
 $data = QueryList::get('https://www.google.co.jp/search?q=QueryList')
-	// Set the crawl rules
-    ->rules([ 
+	->handle(OneAttrPerElementHandler::class) // Extracted Attrs handler need to add before extract()
+    ->extract([  // Set the crawl rules
 	    'title'=>array('h3','text'),
 	    'link'=>array('h3>a','href')
-	])
-	->query()->getData();
+	]);
 
 print_r($data->all());
 ```
@@ -121,7 +121,55 @@ Array
         //...
 )
 ```
-#### Encode convert
+
+extract() more usage：
+```php
+$html = <<<HTML
+<ul>
+    <li>
+        <a href="http://querylist.cc">QueryList Website</a>
+        <img src="http://querylist.com/1.jpg" alt="this is picture 1" abc="this is custom attribute">
+    </li>
+    <li>
+        <a href="http://v3.querylist.cc">QueryList V3 doc</a>
+        <img src="http://querylist.com/2.jpg" alt="this is picture 2" abc="this is custom attribute 2">
+    </li>
+</ul>
+HTML;
+
+$eloquent = [
+    ['name' => 'link_href', 'selector' => 'a', 'attr' => 'href' /*...*/ ],
+    ['name' => 'img_src', 'selector' => 'img', 'attr' => 'src' /*...*/ ],
+    ['name' => 'link_text', 'selector' => 'a', 'attr' => 'text' /*...*/ ],
+]
+
+$data = QueryList::handle(OneAttrPerElementHandler::class)
+    ->setHtml($html)
+    ->extract($eloquent, 'selector', 'attr', 'name');
+
+print_r($data->all());
+```
+Result:
+```
+Array
+(
+    [0] => Array
+        (
+            [link_href] => http://querylist.cc
+            [img_src] => http://querylist.com/1.jpg
+            [link_text] => QueryList Website
+        )
+    [1] => Array
+        (
+            [link_href] => http://v3.querylist.cc
+            [img_src] => http://querylist.com/2.jpg
+            [link_text] => QueryList V3 doc
+        )
+)
+```
+
+#### ~~~Encode convert~~~
+( V5 default handler will auto covert html to UTF-8, use QueryList::config()->disableDefault() to disable it, if you don't need )
 ```php
 // Out charset :UTF-8
 // In charset :GB2312

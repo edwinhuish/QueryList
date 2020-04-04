@@ -6,24 +6,44 @@
  */
 
 namespace QL;
+
 use Closure;
+use QL\Handlers\HtmlCharsetHandler;
 
 class Config
 {
+    /**
+     * @var Config
+     */
     protected static $instance = null;
 
-    protected $plugins;
-    protected $binds;
+    /**
+     * @var array
+     */
+    protected $plugins = [];
 
     /**
-     * Config constructor.
+     * @var array
      */
-    public function __construct()
-    {
-        $this->plugins = collect();
-        $this->binds = collect();
-    }
+    protected $binds = [];
 
+
+    /**
+     * @var array
+     */
+    protected $handlers = [];
+
+    /**
+     * @var array
+     */
+    protected $defaultHandlers = [
+        HtmlCharsetHandler::class => [],
+    ];
+
+    /**
+     * @var bool
+     */
+    protected $disableDefault = false;
 
     /**
      * Get the Config instance
@@ -39,16 +59,16 @@ class Config
     /**
      * Global installation plugin
      *
-     * @param $plugins
-     * @param array ...$opt
+     * @param  string|array  $plugins
+     * @param  array  ...$opt
      * @return $this
      */
-    public function use($plugins,...$opt)
+    public function use($plugins, ...$opt)
     {
-        if(is_string($plugins)){
-            $this->plugins->push([$plugins,$opt]);
-        }else{
-            $this->plugins = $this->plugins->merge($plugins);
+        if (is_string($plugins)) {
+            $this->plugins[] = [$plugins, $opt];
+        } else {
+            $this->plugins = array_merge($this->plugins, $plugins);
         }
         return $this;
     }
@@ -56,8 +76,8 @@ class Config
     /**
      * Global binding custom method
      *
-     * @param string $name
-     * @param Closure $provider
+     * @param  string  $name
+     * @param  Closure  $provider
      * @return $this
      */
     public function bind(string $name, Closure $provider)
@@ -66,28 +86,63 @@ class Config
         return $this;
     }
 
+    /**
+     * Global handlers
+     *
+     * @param  string  $handler_class
+     * @param  mixed  ...$args
+     * @return $this
+     */
+    public function handle(string $handler_class, ...$args)
+    {
+        $this->handlers[$handler_class] = $args;
+        return $this;
+    }
+
+    public function disableDefault()
+    {
+        $this->disableDefault = true;
+        return $this;
+    }
+
     public function bootstrap(QueryList $queryList)
     {
-        $this->installPlugins($queryList);
-        $this->installBind($queryList);
+        $this->installPlugins($queryList)
+            ->installBind($queryList)
+            ->installHandlers($queryList);
     }
 
     protected function installPlugins(QueryList $queryList)
     {
-        $this->plugins->each(function($plugin) use($queryList){
-            if(is_string($plugin)){
+        foreach ($this->plugins as $plugin) {
+            if (is_string($plugin)) {
                 $queryList->use($plugin);
-            }else{
-                $queryList->use($plugin[0],...$plugin[1]);
+            } else {
+                $queryList->use($plugin[0], ...$plugin[1]);
             }
-        });
+        }
+
+        return $this;
     }
 
     protected function installBind(QueryList $queryList)
     {
-        $this->binds->each(function ($provider,$name) use($queryList){
-            $queryList->bind($name,$provider);
-        });
+        foreach ($this->binds as $name => $provider) {
+            $queryList->bind($name, $provider);
+        }
+
+        return $this;
+    }
+
+    protected function installHandlers(QueryList $queryList)
+    {
+        $handlers = $this->disableDefault ? $this->handlers : array_merge($this->defaultHandlers, $this->handlers);
+
+        foreach ($handlers as $handler => $args) {
+            $queryList->handle($handler, ...$args);
+        }
+
+        return $this;
     }
 
 }

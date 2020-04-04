@@ -5,7 +5,7 @@ namespace QL\Contracts;
 
 use QL\Dom\Elements;
 
-interface ElementHandlerContract
+interface ExtElementHandlerContract
 {
     /**
      * @param  Elements  $element

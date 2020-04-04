@@ -1,17 +1,13 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: Jaeger <JaegerCode@gmail.com>
- * Date: 2017/9/21
- */
 
 namespace QL\Dom;
 
 use Exception;
 use QL\Contracts\DocumentHandlerContract;
-use QL\Contracts\ElementHandlerContract;
+use QL\Contracts\ExtElementHandlerContract;
 use QL\Contracts\HtmlHandlerContract;
-use QL\Contracts\ResultHandlerContract;
+use QL\Contracts\ExtAttributesHandlerContract;
+use QL\Contracts\ExtAttributeHandlerContract;
 use QL\QueryList;
 use Tightenco\Collect\Support\Collection;
 
@@ -68,9 +64,7 @@ class Query
     {
         $this->html = $html;
 
-        $newHtml = $this->changeHtmlCharsetToUTF8($html);
-
-        $newHtml = $this->handleHtml($newHtml);
+        $newHtml = $this->handleHtml($html);
 
         $this->document = new Document($newHtml);
 
@@ -112,15 +106,17 @@ class Query
 
             foreach ($rules as $idx => $rule) {
 
-                [$selector, $attr, $name] = $this->getRuleAttributes($rule, $idx, $rule_selector_key, $rule_attr_key, $rule_name_key);
+                list($selector, $attr, $name) = $this->getRuleAttributes($rule, $idx, $rule_selector_key, $rule_attr_key, $rule_name_key);
 
                 $results = $element->find($selector)->map((function (Elements $element) use ($rule, $attr) {
 
-                    return $this->handleElement($element, $rule)->{$attr};
+                    $result = $this->handleExtractedElement($element, $rule)->{$attr};
+
+                    return $this->handleExtractedAttribute($result, $rule);
 
                 })->bindTo($this))->toArray();
 
-                $data[$i][$name] = $this->handleResult($results, $rule);
+                $data[$i][$name] = $this->handleExtractedAttributes($results, $rule, $this->range);
 
             }
 
@@ -190,24 +186,27 @@ class Query
 
 
     /**
-     * @param $handler
+     * @param  string  $handler_class
      * @param  mixed  ...$args
      * @return QueryList
      */
-    public function handle($handler, ...$args)
+    public function handle(string $handler_class, ...$args)
     {
         switch (true) {
-            case (is_subclass_of($handler, HtmlHandlerContract::class)):
-                $this->handlers['html'][$handler] = $args;
+            case (is_subclass_of($handler_class, HtmlHandlerContract::class)):
+                $this->handlers['html'][$handler_class] = $args;
                 break;
-            case (is_subclass_of($handler, DocumentHandlerContract::class)):
-                $this->handlers['document'][$handler] = $args;
+            case (is_subclass_of($handler_class, DocumentHandlerContract::class)):
+                $this->handlers['document'][$handler_class] = $args;
                 break;
-            case (is_subclass_of($handler, ElementHandlerContract::class)):
-                $this->handlers['element'][$handler] = $args;
+            case (is_subclass_of($handler_class, ExtElementHandlerContract::class)):
+                $this->handlers['extracted-element'][$handler_class] = $args;
                 break;
-            case (is_subclass_of($handler, ResultHandlerContract::class)):
-                $this->handlers['result'][$handler] = $args;
+            case (is_subclass_of($handler_class, ExtAttributeHandlerContract::class)):
+                $this->handlers['extracted-attr'][$handler_class] = $args;
+                break;
+            case (is_subclass_of($handler_class, ExtAttributesHandlerContract::class)):
+                $this->handlers['extracted-attrs'] = [$handler_class => $args];
                 break;
         }
 
@@ -230,15 +229,10 @@ class Query
 
     protected function handleDocument()
     {
-//        $document = $this->getDocument();
-
         foreach ($this->getHandlers('document') as $handler => $args) {
 
             call_user_func([$handler, 'handle'], $this->getDocument(), ...$args);
-//            $document = call_user_func([$handler, 'handle'], $document, ...$args);
         }
-
-//        $this->document = $document;
 
         return $this->ql;
     }
@@ -248,9 +242,9 @@ class Query
      * @param  array|object  $rule
      * @return Elements
      */
-    protected function handleElement(Elements $element, $rule): Elements
+    protected function handleExtractedElement(Elements $element, $rule): Elements
     {
-        foreach ($this->getHandlers('element') as $handler => $args) {
+        foreach ($this->getHandlers('extracted-element') as $handler => $args) {
 
             $element = call_user_func([$handler, 'handle'], $element, $rule, ...$args);
         }
@@ -259,18 +253,36 @@ class Query
     }
 
     /**
-     * @param  array  $result
+     * @param  string  $attr
      * @param  array|object  $rule
-     * @return array
+     * @return string
      */
-    protected function handleResult(array $result, $rule)
+    protected function handleExtractedAttribute(string $attr, $rule): string
     {
-        foreach ($this->getHandlers('result') as $handler => $args) {
+        foreach ($this->getHandlers('extracted-attr') as $handler => $args) {
 
-            $result = call_user_func([$handler, 'handle'], $result, $rule, ...$args);
+            $attr = call_user_func([$handler, 'handle'], $attr, $rule, ...$args);
         }
 
-        return $result;
+        return $attr;
+    }
+
+    /**
+     * @param  array  $attrs
+     * @param  array|object  $rule
+     * @param  string  $range
+     * @return array|string|null|mixed
+     */
+    protected function handleExtractedAttributes(array $attrs, $rule, $range = null)
+    {
+        foreach ($this->getHandlers('extracted-attrs') as $handler => $args) {
+
+            $attrs = call_user_func([$handler, 'handle'], $attrs, $rule, $range, ...$args);
+
+            break; // just run the first loop
+        }
+
+        return $attrs;
     }
 
     /**
@@ -282,6 +294,9 @@ class Query
         return $this->handlers[$name] ?? [];
     }
 
+    /**
+     * @return Document
+     */
     public function getDocument()
     {
         if ( ! $this->document) {
@@ -289,22 +304,6 @@ class Query
         }
 
         return $this->document;
-    }
-
-    protected function changeHtmlCharsetToUTF8(string $html)
-    {
-        preg_match('/<meta[^>]+charset=[\'"]?([^"^\'^;^\s]*)[\'"]?[^>]*>/', $html, $matches);
-
-        $charset = $matches[1] ?: 'auto';
-
-        $charset = strtoupper($charset);
-        if ('UTF-8' === $charset || 'UTF8' === $charset) {
-            return $html;
-        }
-
-        $newHtml = mb_convert_encoding($html, "UTF-8", $charset);
-
-        return $charset === 'auto' ? $newHtml : preg_replace('/(<meta[^>]+charset=[\'"]?)([^"^\'^;^\s]*)([\'"]?[^>]*>)/', '${1}UTF-8${2}', $newHtml);
     }
 
 }

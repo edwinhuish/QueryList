@@ -45,7 +45,7 @@ use QL\Services\MultiRequestService;
  * @method QueryList pipe(Closure $callback = null)
  *
  * @method Collection extract(iterable $rules, string|int|null $rule_selector_key = null, string|int|null $rule_attr_key = null, string|int|null $rule_name_key = null)
- * @method handle(string|Object $handler, ...$args)
+ * @method QueryList handle(string|Object $handler, ...$args)
  * @method Document getDocument()
  */
 class QueryList
