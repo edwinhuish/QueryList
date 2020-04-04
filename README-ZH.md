@@ -146,7 +146,7 @@ $eloquent = [
 
 $data = QueryList::handle(OneAttrPerElementHandler::class)
     ->setHtml($html)
-    ->extract($eloquent, 'selector', 'attr', 'name');
+    ->extract($eloquent, 'selector', 'attr', 'name'); // 第一个参数可以是对象数组
 
 print_r($data->all());
 ```
@@ -169,7 +169,7 @@ Array
 )
 ```
 
-#### ~~编码转换~~
+#### <del>编码转换</del>
 ( V5 自带默认 handler 会自动将编码转为 UTF-8， 如需禁用，请使用 QueryList::config()->disableDefault()，禁用默认的 handlers )
 ```php
 // 输出编码:UTF-8,输入编码:GB2312

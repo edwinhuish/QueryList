@@ -91,7 +91,7 @@ $ql->find('div.old')->replaceWith( $ql->find('div.new')->clone())->appendTo('.tr
 Crawl the title and link of the Google search results list:
 ```php
 $data = QueryList::get('https://www.google.co.jp/search?q=QueryList')
-	->handle(OneAttrPerElementHandler::class) // Extracted Attrs handler need to add before extract()
+    ->handle(OneAttrPerElementHandler::class) // Extracted Attrs handler need to add before extract()
     ->extract([  // Set the crawl rules
 	    'title'=>array('h3','text'),
 	    'link'=>array('h3>a','href')
@@ -145,7 +145,7 @@ $eloquent = [
 
 $data = QueryList::handle(OneAttrPerElementHandler::class)
     ->setHtml($html)
-    ->extract($eloquent, 'selector', 'attr', 'name');
+    ->extract($eloquent, 'selector', 'attr', 'name'); // first $arg can be array of obj/array
 
 print_r($data->all());
 ```
@@ -168,7 +168,7 @@ Array
 )
 ```
 
-#### ~~~Encode convert~~~
+#### <del>Encode convert</del>
 ( V5 default handler will auto covert html to UTF-8, use QueryList::config()->disableDefault() to disable it, if you don't need )
 ```php
 // Out charset :UTF-8
