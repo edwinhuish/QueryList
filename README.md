@@ -168,16 +168,22 @@ Array
 )
 ```
 
-#### <del>Encode convert</del>
-( V5 default handler will auto covert html to UTF-8, use QueryList::config()->disableDefault() to disable it, if you don't need )
+#### Handlers
+Use handle() method to add handlers to Querylist. 
 ```php
-// Out charset :UTF-8
-// In charset :GB2312
-QueryList::get('https://top.etao.com')->encoding('UTF-8','GB2312')->find('a')->texts();
+// HtmlCharsetHandler is default handler, no need to add manually
+// Let HtmlCharsetHandler recover $html from 'UTF-16' to 'UTF-8' before insert
+QL::handle(HtmlCharsetHandler::class, 'UTF-16'); 
 
-// Out charset:UTF-8
-// In charset:Automatic Identification
-QueryList::get('https://top.etao.com')->encoding('UTF-8')->find('a')->texts();
+// Absolute dom urls
+QL::handle(AbsoluteUrlsHandler::class, $current_uri);
+
+// Remove continue spaces
+QL::handle(MinifyHtmlHandler::class);
+
+// One attribute per element for extract() function
+// is usefull for list crawl
+QL::handle(OneAttrPerElementHandler::class);
 ```
 
 #### HTTP Client (GuzzleHttp)

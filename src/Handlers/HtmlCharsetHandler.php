@@ -8,39 +8,45 @@ class HtmlCharsetHandler implements HandleHtmlContract
 {
     /**
      * @param  string  $html
+     * @param  string|null  $from
+     * @param  string|null  $to
      * @param  mixed  ...$args
      * @return string
      */
-    public function handle(string $html, ...$args): string
+    public function handle(string $html, $from = null, $to = 'UTF-8', ...$args): string
     {
-        preg_match('/<meta[^>]+charset=[\'"]?([^"\';\s]*)[\'"]?[^>]*>/', $html, $matches);
+        if ( ! $from) {
+            preg_match('/<meta[^>]+charset=[\'"]?([^"\';\s]*)[\'"]?[^>]*>/', $html, $matches);
 
-        $charset = $args[0] ?? null;
+            $from = $matches[1] ?? '';
+        }
+        $from = $from ?: self::detect($html);
 
-        $charset = $charset ?: ($matches[1] ?? '');
+        $from = strtoupper($from);
+        $to   = strtoupper($to);
 
-        $charset = strtoupper($charset);
+        if ($from === $to) {
+            return $html;
+        }
 
-        $newHtml = $html;
-        if ('UTF-8' !== $charset && 'UTF8' !== $charset) {
-            if (empty($charset)) {
-                $charset = self::detect($html);
-            }
-            $newHtml = iconv($charset, 'UTF-8//IGNORE', $html);
+        $newHtml = iconv($from, $to.'//IGNORE', $html);
 
-            if (false === $newHtml) {
-                $newHtml = mb_convert_encoding($html, 'UTF-8', $charset);
-            }
+        if (false === $newHtml) {
+            $newHtml = mb_convert_encoding($html, $to, $from);
         }
 
         // remove charset meta
         $newHtml = preg_replace('/<meta[^>]+charset=[\'"]?([^"\';\s]*)[\'"]?[^>]*>/', '', $newHtml);
 
-        $newMeta = '<meta http-equiv="Content-Type" content="text/html;charset=UTF-8">';
-
         if (strpos($newHtml, /** @lang text */ '<head>') !== false) {
             // add UTF-8 charset meta to next <head>
-            $newHtml = str_replace(/** @lang text */ '<head>', /** @lang text */ '<head>'.$newMeta, $newHtml);
+            $newHtml = str_replace(
+            /** @lang text */
+                '<head>',
+                /** @lang text */
+                '<head><meta http-equiv="Content-Type" content="text/html;charset='.$to.'">',
+                $newHtml
+            );
         }
 
         return $newHtml;

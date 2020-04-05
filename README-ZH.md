@@ -169,14 +169,22 @@ Array
 )
 ```
 
-#### <del>编码转换</del>
-( V5 自带默认 handler 会自动将编码转为 UTF-8， 如需禁用，请使用 QueryList::config()->disableDefault()，禁用默认的 handlers )
+#### Handlers 处理器
+Use handle() method to add handlers to Querylist. 
 ```php
-// 输出编码:UTF-8,输入编码:GB2312
-QueryList::get('https://top.etao.com')->encoding('UTF-8','GB2312')->find('a')->texts();
+// HtmlCharsetHandler 默认加载，无须手动加载
+// 使 HtmlCharsetHandler 自动将 HTML 从 'UTF-16' 转换为 'UTF-8'。
+QL::handle(HtmlCharsetHandler::class, 'UTF-16'); 
 
-// 输出编码:UTF-8,输入编码:自动识别
-QueryList::get('https://top.etao.com')->encoding('UTF-8')->find('a')->texts();
+// 将所有 URL 转换为绝对路径
+QL::handle(AbsoluteUrlsHandler::class, $current_uri);
+
+// 去除连续空格
+QL::handle(MinifyHtmlHandler::class);
+
+// 用于 extract() 函数，每个 Element 只提取一个属性。
+// 对于列表采集非常有用
+QL::handle(OneAttrPerElementHandler::class);
 ```
 
 #### HTTP网络操作（GuzzleHttp）
