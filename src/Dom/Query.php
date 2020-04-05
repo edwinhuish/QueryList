@@ -200,13 +200,13 @@ class Query
                 $this->handlers['document'][$handler_class] = $args;
                 break;
             case (is_subclass_of($handler_class, HandleElementContract::class)):
-                $this->handlers['extracted-element'][$handler_class] = $args;
+                $this->handlers['element'][$handler_class] = $args;
                 break;
             case (is_subclass_of($handler_class, HandleAttributeContract::class)):
-                $this->handlers['extracted-attr'][$handler_class] = $args;
+                $this->handlers['attr'][$handler_class] = $args;
                 break;
             case (is_subclass_of($handler_class, HandleAttributesContract::class)):
-                $this->handlers['extracted-attrs'] = [$handler_class => $args];
+                $this->handlers['attrs'] = [$handler_class => $args];
                 break;
         }
 
@@ -244,7 +244,7 @@ class Query
      */
     protected function handleExtractedElement(Elements $element, $rule): Elements
     {
-        foreach ($this->getHandlers('extracted-element') as $handler => $args) {
+        foreach ($this->getHandlers('element') as $handler => $args) {
 
             $element = call_user_func([$handler, 'handle'], $element, $rule, ...$args);
         }
@@ -259,7 +259,7 @@ class Query
      */
     protected function handleExtractedAttribute(string $attr, $rule): string
     {
-        foreach ($this->getHandlers('extracted-attr') as $handler => $args) {
+        foreach ($this->getHandlers('attr') as $handler => $args) {
 
             $attr = call_user_func([$handler, 'handle'], $attr, $rule, ...$args);
         }
@@ -275,7 +275,7 @@ class Query
      */
     protected function handleExtractedAttributes(array $attrs, $rule, $range = null)
     {
-        foreach ($this->getHandlers('extracted-attrs') as $handler => $args) {
+        foreach ($this->getHandlers('attrs') as $handler => $args) {
 
             $attrs = call_user_func([$handler, 'handle'], $attrs, $rule, $range, ...$args);
 
