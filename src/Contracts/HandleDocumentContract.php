@@ -5,7 +5,7 @@ namespace QL\Contracts;
 
 use QL\Dom\Document;
 
-interface DocumentHandlerContract
+interface HandleDocumentContract
 {
     /**
      * @param  Document  $document

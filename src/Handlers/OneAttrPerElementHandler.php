@@ -2,9 +2,9 @@
 
 namespace QL\Handlers;
 
-use QL\Contracts\ExtAttributesHandlerContract;
+use QL\Contracts\HandleAttributesContract;
 
-class OneAttrPerElementHandler implements ExtAttributesHandlerContract
+class OneAttrPerElementHandler implements HandleAttributesContract
 {
     /**
      * @param  array  $attr_array

@@ -2,9 +2,9 @@
 
 namespace QL\Handlers;
 
-use QL\Contracts\HtmlHandlerContract;
+use QL\Contracts\HandleHtmlContract;
 
-class MinifyHtmlHandler implements HtmlHandlerContract
+class MinifyHtmlHandler implements HandleHtmlContract
 {
     /**
      * @param  string  $html

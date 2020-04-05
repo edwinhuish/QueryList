@@ -2,7 +2,7 @@
 
 namespace QL\Contracts;
 
-interface HtmlHandlerContract
+interface HandleHtmlContract
 {
     /**
      * @param  string  $html

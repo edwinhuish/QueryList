@@ -3,11 +3,11 @@
 namespace QL\Handlers;
 
 use phpUri;
-use QL\Contracts\DocumentHandlerContract;
+use QL\Contracts\HandleDocumentContract;
 use QL\Dom\Document;
 use QL\Dom\Elements;
 
-class AbsoluteUrlsHandler implements DocumentHandlerContract
+class AbsoluteUrlsHandler implements HandleDocumentContract
 {
 
     /**

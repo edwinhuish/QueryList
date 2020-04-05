@@ -2,7 +2,7 @@
 
 namespace QL\Contracts;
 
-interface ExtAttributesHandlerContract
+interface HandleAttributesContract
 {
     /**
      * This function just work for the first one in case of the return type can be any!!

@@ -2,9 +2,9 @@
 
 namespace QL\Handlers;
 
-use QL\Contracts\HtmlHandlerContract;
+use QL\Contracts\HandleHtmlContract;
 
-class HtmlCharsetHandler implements HtmlHandlerContract
+class HtmlCharsetHandler implements HandleHtmlContract
 {
     /**
      * @param  string  $html

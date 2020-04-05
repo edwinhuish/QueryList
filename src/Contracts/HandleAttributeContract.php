@@ -2,7 +2,7 @@
 
 namespace QL\Contracts;
 
-interface ExtAttributeHandlerContract
+interface HandleAttributeContract
 {
     /**
      * @param  string  $attr

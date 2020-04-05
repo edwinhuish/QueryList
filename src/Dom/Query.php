@@ -3,11 +3,11 @@
 namespace QL\Dom;
 
 use Exception;
-use QL\Contracts\DocumentHandlerContract;
-use QL\Contracts\ExtElementHandlerContract;
-use QL\Contracts\HtmlHandlerContract;
-use QL\Contracts\ExtAttributesHandlerContract;
-use QL\Contracts\ExtAttributeHandlerContract;
+use QL\Contracts\HandleDocumentContract;
+use QL\Contracts\HandleElementContract;
+use QL\Contracts\HandleHtmlContract;
+use QL\Contracts\HandleAttributesContract;
+use QL\Contracts\HandleAttributeContract;
 use QL\QueryList;
 use Tightenco\Collect\Support\Collection;
 
@@ -193,19 +193,19 @@ class Query
     public function handle(string $handler_class, ...$args)
     {
         switch (true) {
-            case (is_subclass_of($handler_class, HtmlHandlerContract::class)):
+            case (is_subclass_of($handler_class, HandleHtmlContract::class)):
                 $this->handlers['html'][$handler_class] = $args;
                 break;
-            case (is_subclass_of($handler_class, DocumentHandlerContract::class)):
+            case (is_subclass_of($handler_class, HandleDocumentContract::class)):
                 $this->handlers['document'][$handler_class] = $args;
                 break;
-            case (is_subclass_of($handler_class, ExtElementHandlerContract::class)):
+            case (is_subclass_of($handler_class, HandleElementContract::class)):
                 $this->handlers['extracted-element'][$handler_class] = $args;
                 break;
-            case (is_subclass_of($handler_class, ExtAttributeHandlerContract::class)):
+            case (is_subclass_of($handler_class, HandleAttributeContract::class)):
                 $this->handlers['extracted-attr'][$handler_class] = $args;
                 break;
-            case (is_subclass_of($handler_class, ExtAttributesHandlerContract::class)):
+            case (is_subclass_of($handler_class, HandleAttributesContract::class)):
                 $this->handlers['extracted-attrs'] = [$handler_class => $args];
                 break;
         }
