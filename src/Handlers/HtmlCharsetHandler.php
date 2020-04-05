@@ -15,15 +15,18 @@ class HtmlCharsetHandler implements HandleHtmlContract
     {
         preg_match('/<meta[^>]+charset=[\'"]?([^"\';\s]*)[\'"]?[^>]*>/', $html, $matches);
 
-        $charset = $matches[1] ?: 'auto';
+        $charset = strtoupper($matches[1] ?? '');
 
-        $charset = strtoupper($charset);
-        if ('UTF-8' === $charset || 'UTF8' === $charset) {
-            return $html;
+        if ('UTF-8' !== $charset && 'UTF8' !== $charset) {
+            $html = empty($charset) ? mb_convert_encoding($html, "UTF-8") : iconv($charset, 'UTF-8//IGNORE', $html);
         }
 
-        $newHtml = mb_convert_encoding($html, "UTF-8", $charset);
+        // remove charset meta
+        $html = preg_replace('/<meta[^>]+charset=[\'"]?([^"\';\s]*)[\'"]?[^>]*>/', '', $html);
 
-        return $charset === 'auto' ? $newHtml : preg_replace('/(<meta[^>]+charset=[\'"]?)([^"\';\s]*)([\'"]?[^>]*>)/', '${1}UTF-8${2}', $newHtml);
+        // add UTF-8 charset meta to next <head>
+        $html = str_replace(/** @lang text */ '<head>', /** @lang text */ '<head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8">', $html);
+
+        return $html;
     }
 }

@@ -12,6 +12,7 @@
   "require": {
     "PHP": ">=7.1",
     "ext-dom": "*",
+    "ext-iconv": "*",
     "tightenco/collect": "^5",
     "jaeger/g-http": "^1.1",
     "edwinhuish/domquery": "^1.0",
