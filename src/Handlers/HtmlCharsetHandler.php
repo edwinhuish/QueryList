@@ -15,18 +15,47 @@ class HtmlCharsetHandler implements HandleHtmlContract
     {
         preg_match('/<meta[^>]+charset=[\'"]?([^"\';\s]*)[\'"]?[^>]*>/', $html, $matches);
 
-        $charset = strtoupper($matches[1] ?? '');
+        $charset = $args[0] ?? null;
 
+        $charset = $charset ?: ($matches[1] ?? '');
+
+        $charset = strtoupper($charset);
+
+        $newHtml = $html;
         if ('UTF-8' !== $charset && 'UTF8' !== $charset) {
-            $html = empty($charset) ? mb_convert_encoding($html, "UTF-8") : iconv($charset, 'UTF-8//IGNORE', $html);
+            if (empty($charset)) {
+                $charset = self::detect($html);
+            }
+            $newHtml = iconv($charset, 'UTF-8//IGNORE', $html);
+
+            if (false === $newHtml) {
+                $newHtml = mb_convert_encoding($html, 'UTF-8', $charset);
+            }
         }
 
         // remove charset meta
-        $html = preg_replace('/<meta[^>]+charset=[\'"]?([^"\';\s]*)[\'"]?[^>]*>/', '', $html);
+        $newHtml = preg_replace('/<meta[^>]+charset=[\'"]?([^"\';\s]*)[\'"]?[^>]*>/', '', $newHtml);
 
-        // add UTF-8 charset meta to next <head>
-        $html = str_replace(/** @lang text */ '<head>', /** @lang text */ '<head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8">', $html);
+        $newMeta = '<meta http-equiv="Content-Type" content="text/html;charset=UTF-8">';
 
-        return $html;
+        if (strpos($newHtml, /** @lang text */ '<head>') !== false) {
+            // add UTF-8 charset meta to next <head>
+            $newHtml = str_replace(/** @lang text */ '<head>', /** @lang text */ '<head>'.$newMeta, $newHtml);
+        }
+
+        return $newHtml;
+    }
+
+    /**
+     * @param $string
+     * @return string
+     */
+    public static function detect($string)
+    {
+        $charset = mb_detect_encoding($string, array('ASCII', 'GB2312', 'GBK', 'UTF-8'), true);
+        if (strtolower($charset) == 'cp936') {
+            $charset = 'GBK';
+        }
+        return $charset;
     }
 }
