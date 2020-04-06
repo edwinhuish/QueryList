@@ -49,7 +49,7 @@ class Query
      */
     public function getHtml(bool $getOriginal = false): string
     {
-        if ( ! $getOriginal && $this->document) {
+        if ($getOriginal && $this->document) {
             return $this->document->getOuterHtml();
         }
 

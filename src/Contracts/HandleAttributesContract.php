@@ -15,6 +15,6 @@ interface HandleAttributesContract
      * @param  mixed  ...$args
      * @return array|string|null
      */
-    public function handle(array $attr_array, $rule, $range, ...$args);
+    public static function handle(array $attr_array, $rule, $range, ...$args);
 
 }

@@ -13,6 +13,6 @@ interface HandleElementContract
      * @param  mixed  ...$args
      * @return Elements
      */
-    public function handle(Elements $element, $rule, ...$args): Elements;
+    public static function handle(Elements $element, $rule, ...$args): Elements;
 
 }

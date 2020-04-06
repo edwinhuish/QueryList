@@ -11,7 +11,7 @@ class MinifyHtmlHandler implements HandleHtmlContract
      * @param  mixed  ...$args
      * @return string
      */
-    public function handle(string $html, ...$args): string
+    public static function handle(string $html, ...$args): string
     {
         // merge 2 continue space to 1
         $html = preg_replace('/\s{2,}/', ' ', $html);

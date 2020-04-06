@@ -12,6 +12,6 @@ interface HandleDocumentContract
      * @param  mixed  ...$args
      * @return Document
      */
-    public function handle(Document $document, ...$args): Document;
+    public static function handle(Document $document, ...$args): Document;
 
 }

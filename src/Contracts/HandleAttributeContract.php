@@ -10,6 +10,6 @@ interface HandleAttributeContract
      * @param  mixed  ...$args
      * @return string
      */
-    public function handle(string $attr, $rule, ...$args): string;
+    public static function handle(string $attr, $rule, ...$args): string;
 
 }

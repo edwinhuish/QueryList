@@ -13,7 +13,7 @@ class HtmlCharsetHandler implements HandleHtmlContract
      * @param  mixed  ...$args
      * @return string
      */
-    public function handle(string $html, $from = null, $to = 'UTF-8', ...$args): string
+    public static function handle(string $html, $from = null, $to = 'UTF-8', ...$args): string
     {
         if ( ! $from) {
             preg_match('/<meta[^>]+charset=[\'"]?([^"\';\s]*)[\'"]?[^>]*>/', $html, $matches);

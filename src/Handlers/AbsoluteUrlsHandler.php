@@ -17,7 +17,7 @@ class AbsoluteUrlsHandler implements HandleDocumentContract
      * @param  mixed  ...$args
      * @return Document
      */
-    public function handle(Document $document, $currentUri = '', $attrs = ['href', 'src'], ...$args): Document
+    public static function handle(Document $document, $currentUri = '', $attrs = ['href', 'src'], ...$args): Document
     {
         if (empty($currentUri)) {
             return $document;

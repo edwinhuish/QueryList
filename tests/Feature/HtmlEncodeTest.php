@@ -5,7 +5,7 @@ namespace Tests;
 use QL\Handlers\HtmlCharsetHandler;
 use QL\Statics\QL;
 
-class HtmlEncodTest extends TestCaseBase
+class HtmlEncodeTest extends TestCaseBase
 {
     protected $html;
 
