@@ -93,10 +93,11 @@ class Query
      */
     public function extract(iterable $rules, $rule_selector_key = null, $rule_attr_key = null, $rule_name_key = null)
     {
-        $root = $this->getDocument()->find(':first');
 
-        if ( ! empty($this->range)) {
-            $root = $root->find($this->range);
+        if (empty($this->range)) {
+            $root = $this->find(':first');
+        } else {
+            $root = $this->find($this->range);
         }
 
         $data = [];
