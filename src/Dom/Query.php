@@ -16,7 +16,7 @@ class Query
     /**
      * @var string
      */
-    protected $html;
+    protected $html = '';
 
     /**
      * @var Document
@@ -44,12 +44,12 @@ class Query
     }
 
     /**
-     * @param  bool  $getOriginal
+     * @param  bool  $getHandled
      * @return string
      */
-    public function getHtml(bool $getOriginal = false): string
+    public function getHtml(bool $getHandled = false): string
     {
-        if ($getOriginal && $this->document) {
+        if ($getHandled && $this->document) {
             return $this->document->getOuterHtml();
         }
 
@@ -101,7 +101,7 @@ class Query
         }
 
         $data = [];
-        $i    = 0;
+        $i = 0;
 
         $root->map((function (Elements $element) use (&$data, &$i, $rules, $rule_selector_key, $rule_attr_key, $rule_name_key) {
 
