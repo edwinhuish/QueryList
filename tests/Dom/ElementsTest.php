@@ -6,11 +6,11 @@
  * Time: 12:46 AM
  */
 
-namespace QLTests\Dom;
+namespace QL\Tests\Dom;
 
 
 use QL\Dom\Elements;
-use Tests\TestCaseBase;
+use QL\Tests\TestCaseBase;
 use Tightenco\Collect\Support\Collection;
 
 class ElementsTest extends TestCaseBase

@@ -6,11 +6,11 @@
  * Time: 下午12:25
  */
 
-namespace Tests\Dom;
+namespace QL\Tests\Dom;
 
 
 use QL\QueryList;
-use Tests\TestCaseBase;
+use QL\Tests\TestCaseBase;
 use Tightenco\Collect\Support\Collection;
 
 class RulesTest extends TestCaseBase

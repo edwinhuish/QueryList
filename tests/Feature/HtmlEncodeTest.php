@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests;
+namespace QL\Tests;
 
 use QL\Handlers\HtmlCharsetHandler;
 use QL\Statics\QL;

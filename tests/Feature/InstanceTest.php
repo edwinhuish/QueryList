@@ -6,11 +6,11 @@
  * Time: 11:10 PM
  */
 
-namespace Tests\Feature;
+namespace QL\Tests\Feature;
 
 
 use QL\QueryList;
-use Tests\TestCaseBase;
+use QL\Tests\TestCaseBase;
 
 class InstanceTest extends TestCaseBase
 {

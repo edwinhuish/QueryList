@@ -6,13 +6,13 @@
  * Time: 12:35 AM
  */
 
-namespace Tests\Feature;
+namespace QL\Tests\Feature;
 
 
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\Psr7\Response;
 use QL\QueryList;
-use Tests\TestCaseBase;
+use QL\Tests\TestCaseBase;
 
 class HttpTest extends TestCaseBase
 {

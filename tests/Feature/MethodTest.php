@@ -6,11 +6,11 @@
  * Time: 1:14 AM
  */
 
-namespace Tests\Feature;
+namespace QL\Tests\Feature;
 
 
 use QL\QueryList;
-use Tests\TestCaseBase;
+use QL\Tests\TestCaseBase;
 
 class MethodTest extends TestCaseBase
 {

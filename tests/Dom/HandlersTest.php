@@ -1,12 +1,12 @@
 <?php
 
-namespace Tests\Dom;
+namespace QL\Tests\Dom;
 
 use QL\Handlers\AbsoluteUrlsHandler;
 use QL\Handlers\MinifyHtmlHandler;
 use QL\Handlers\OneAttrPerElementHandler;
 use QL\QueryList;
-use Tests\TestCaseBase;
+use QL\Tests\TestCaseBase;
 
 class HandlersTest extends TestCaseBase
 {
